@@ -156,6 +156,33 @@ export default function HomePage() {
     setShowClearAllDialog(false);
   };
 
+  const fetchNewsDetail = (id) => {
+    return new Promise((resolve, reject) => {
+      const callbackName = `newsDetail_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      const url = `https://newsinfo.eastmoney.com/kuaixun/v2/api/content/getnews?newsid=${id}&newstype=1&guid=appzxzw3a6955ac-8410-f613-62f9-ed66a9c23dd7&source=wap&version=1&language=&pkg=&callback=${callbackName}`;
+
+      window[callbackName] = (data) => {
+        delete window[callbackName];
+        if (document.getElementById(callbackName)) {
+          document.body.removeChild(document.getElementById(callbackName));
+        }
+        resolve(data);
+      };
+
+      const script = document.createElement('script');
+      script.id = callbackName;
+      script.src = url;
+      script.onerror = () => {
+        delete window[callbackName];
+        if (document.getElementById(callbackName)) {
+          document.body.removeChild(document.getElementById(callbackName));
+        }
+        reject(new Error('Fetch news detail failed'));
+      };
+      document.body.appendChild(script);
+    });
+  };
+
   const handleNewsClick = async (newsItem) => {
     setSelectedNews(null);
     setShowNewsDetail(true);
@@ -163,8 +190,7 @@ export default function HomePage() {
     try {
       // Support both newsid and code (Eastmoney list usually uses code as ID)
       const id = newsItem.newsid || newsItem.code;
-      const res = await fetch(`/api/news-detail?newsid=${id}`);
-      const data = await res.json();
+      const data = await fetchNewsDetail(id);
       if (data && data.news) {
         const detail = { ...data.news };
         // Map fields from list item if missing in detail
